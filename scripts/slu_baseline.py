@@ -41,7 +41,7 @@ args.tag_pad_idx = Example.label_vocab.convert_tag_to_idx(PAD)#0
 
 # model = SLUTagging(args).to(device)
 model = BertBasedModel(args).to(device)
-if isinstance(model,SLUTagging):
+if args.load_embedding:
     Example.word2vec.load_embeddings(model.word_embed, Example.word_vocab, device=device)
 
 if args.testing:
