@@ -43,7 +43,9 @@ args.tag_pad_idx = Example.label_vocab.convert_tag_to_idx(PAD)#0
 model = BertBasedModel(args).to(device)
 if args.load_embedding:
     Example.word2vec.load_embeddings(model.word_embed, Example.word_vocab, device=device)
-
+    model = SLUTagging(args).to(device)
+else:
+    model = BertBasedModel(args).to(device)
 if args.testing:
     check_point = torch.load(open('model.bin', 'rb'), map_location=device)
     model.load_state_dict(check_point['model'])
