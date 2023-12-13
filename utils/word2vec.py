@@ -9,7 +9,8 @@ class Word2vecUtils():
     def __init__(self, word2vec_file):
         super(Word2vecUtils, self).__init__()
         self.word2vec = {}
-        self.read_from_file(word2vec_file)
+        if word2vec_file:
+            self.read_from_file(word2vec_file)
 
     def load_embeddings(self, module, vocab, device='cpu'):
         """ Initialize the embedding with glove and char embedding
