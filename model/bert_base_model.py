@@ -17,7 +17,7 @@ class BertBasedModel(nn.Module):
             self.bert = BertModel.from_pretrained("bert-base-chinese")
             self.bert.save_pretrained(path)
         self.bert.requires_grad_(False)
-        # self.att = nn.MultiheadAttention(768,8)
+        self.att = nn.MultiheadAttention(768,8)
         self.rnn = nn.GRU(config.embed_size, config.hidden_size // 2, num_layers=config.num_layer, bidirectional=True, batch_first=True)
         self.intent = IntentAugment(tag_classes = tag_classes)
         self.loss = nn.CrossEntropyLoss(ignore_index = config.tag_pad_idx)
@@ -36,8 +36,8 @@ class BertBasedModel(nn.Module):
         # h_prime = self.att(last_hidden,last_hidden,last_hidden)[0]
         packed_inputs = rnn_utils.pack_padded_sequence(last_hidden, lengths, batch_first=True, enforce_sorted=True)
         packed_rnn_out, h_t_c_t = self.rnn(packed_inputs)  # bsize x seqlen x dim
-        last_hidden, unpacked_len = rnn_utils.pad_packed_sequence(packed_rnn_out, batch_first=True)
-        
+        n_hidden, unpacked_len = rnn_utils.pad_packed_sequence(packed_rnn_out, batch_first=True)
+        last_hidden = self.att(last_hidden,n_hidden,n_hidden)[0]
         logits = self.intent(last_hidden,None)# bs, seq_len,tag_classes, 这里的None本来应该是h_prime
         
         logits += (1-tag_mask).unsqueeze(-1).repeat(1,1,self.num_tags)* -1e32
