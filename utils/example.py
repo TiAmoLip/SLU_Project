@@ -20,7 +20,7 @@ class Example():
 
     @classmethod
     def load_dataset(cls, data_path):
-        dataset = json.load(open(data_path, 'r'))
+        dataset = json.load(open(data_path, 'r', encoding='utf-8'))
         examples = []
         
         for di, data in enumerate(dataset):

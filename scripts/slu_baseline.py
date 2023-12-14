@@ -99,7 +99,7 @@ def predict():
             for pi, p in enumerate(pred):
                 did = current_batch.did[pi]
                 predictions[did] = p
-    test_json = json.load(open(test_path, 'r'))
+    test_json = json.load(open(test_path, 'r', encoding='utf-8'))
     ptr = 0
     for ei, example in enumerate(test_json):
         for ui, utt in enumerate(example):
@@ -156,3 +156,4 @@ else:
     dev_acc, dev_fscore = metrics['acc'], metrics['fscore']
     predict()
     print("Evaluation costs %.2fs ; Dev loss: %.4f\tDev acc: %.2f\tDev fscore(p/r/f): (%.2f/%.2f/%.2f)" % (time.time() - start_time, dev_loss, dev_acc, dev_fscore['precision'], dev_fscore['recall'], dev_fscore['fscore']))
+#FINAL BEST RESULT:      Epoch: 4        Dev loss: 0.6676        Dev acc: 71.8436        Dev fscore(p/r/f): (79.8883/74.5568/77.1305)
