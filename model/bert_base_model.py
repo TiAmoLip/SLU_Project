@@ -16,7 +16,7 @@ class BertBasedModel(nn.Module):
         else:
             self.bert = BertModel.from_pretrained("bert-base-chinese")
             self.bert.save_pretrained(path)
-        # self.bert.requires_grad_(False)
+        self.bert.requires_grad_(False)
         # self.att = nn.MultiheadAttention(768,8)
         self.rnn = nn.GRU(config.embed_size, config.hidden_size // 2, num_layers=config.num_layer, bidirectional=True, batch_first=True)
         self.intent = IntentAugment(tag_classes = tag_classes)
