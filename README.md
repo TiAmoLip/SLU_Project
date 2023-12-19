@@ -8,3 +8,12 @@ by running:
 ```bash
 python scripts/slu_baseline.py --load_embedding True
 ```
+
+### Bert:
+```bash
+Evaluation costs 1590.08s, Best result epoch: 32 ; Dev loss: 1.39        Dev acc: 81.23  Dev fscore(p/r/f): (82.35/90.21/86.10)
+```
+by running:
+```bash
+python scripts/bert_base.py --max_epoch 50
+```
