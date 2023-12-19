@@ -19,7 +19,7 @@ def add_argument_base(arg_parser):
     arg_parser.add_argument('--testing', action='store_true', help='training or evaluation mode')
     #### Training Hyperparams ####
     arg_parser.add_argument('--batch_size', default=32, type=int, help='Batch size')
-    arg_parser.add_argument('--lr', type=float, default=1e-3, help='learning rate')
+    arg_parser.add_argument('--lr', type=float, default=1e-5, help='learning rate')
     arg_parser.add_argument('--max_epoch', type=int, default=10, help='terminate after maximum epochs')
     #### Common Encoder Hyperparams ####
     arg_parser.add_argument('--encoder_cell', default='LSTM', choices=['LSTM', 'GRU', 'RNN'], help='root of data')
@@ -29,4 +29,7 @@ def add_argument_base(arg_parser):
     arg_parser.add_argument('--num_layer', default=2, type=int, help='number of layer')
     # for bert options
     arg_parser.add_argument('--load_embedding', default=False, type=bool, help='whether to load pretrained word2vec embeddings')
+    arg_parser.add_argument('--bert_vob', default='./vocab.txt', help='path of bert_vob file path')
+    arg_parser.add_argument('--bert_path', default='./checkpoints/bert')
+    arg_parser.add_argument('--frozon', default=False, help='whether to freeze base bert model')
     return arg_parser

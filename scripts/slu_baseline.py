@@ -115,7 +115,7 @@ if not args.testing:
     nsamples, best_result = len(train_dataset), {'dev_acc': 0., 'dev_f1': 0.}
     train_index, step_size = np.arange(nsamples), args.batch_size
     print('Start training ......')
-    with tqdm(total=args.max_epoch*(nsamples//step_size)) as pbar:
+    with tqdm(total=args.max_epoch*(nsamples//step_size), leave=False) as pbar:
         for i in range(args.max_epoch):
             start_time = time.time()
             epoch_loss = 0
@@ -125,6 +125,7 @@ if not args.testing:
             for j in range(0, nsamples, step_size):
                 cur_dataset = [train_dataset[k] for k in train_index[j: j + step_size]]
                 current_batch = from_example_list(args, cur_dataset, device, train=True)
+                #print(current_batch.tag_ids)
                 output, loss = model(current_batch)
                 epoch_loss += loss.item()
                 loss.backward()

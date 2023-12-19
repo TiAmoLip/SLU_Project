@@ -1,0 +1,1 @@
+from model.slu_baseline_tagging import SLUTagging
