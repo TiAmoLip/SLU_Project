@@ -1,0 +1,9 @@
+LICENSE.txt
+README.rst
+requirements.txt
+setup.py
+pytorch_crf.egg-info/PKG-INFO
+pytorch_crf.egg-info/SOURCES.txt
+pytorch_crf.egg-info/dependency_links.txt
+pytorch_crf.egg-info/top_level.txt
+torchcrf/__init__.py

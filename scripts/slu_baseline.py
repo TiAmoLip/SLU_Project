@@ -11,8 +11,9 @@ from utils.initialization import *
 from utils.example import Example
 from utils.batch import from_example_list
 from utils.vocab import PAD
-from model.slu_baseline_tagging import SLUTagging
+from model.slu_baseline_tagging_crf import SLUTagging
 from model.bert_base_model import BertBasedModel
+from model.gpt2_base_model import GPT2BasedModel
 # initialization params, output path, logger, random seed and torch.device
 args = init_args(sys.argv[1:])
 set_random_seed(args.seed)
@@ -39,13 +40,14 @@ args.num_tags = Example.label_vocab.num_tags#74
 args.tag_pad_idx = Example.label_vocab.convert_tag_to_idx(PAD)#0
 
 
-
 if args.load_embedding:
     
     model = SLUTagging(args).to(device)
     Example.word2vec.load_embeddings(model.word_embed, Example.word_vocab, device=device)
 else:
     model = BertBasedModel(args).to(device)
+
+
 if args.testing:
     check_point = torch.load(open('model.bin', 'rb'), map_location=device)
     model.load_state_dict(check_point['model'])
