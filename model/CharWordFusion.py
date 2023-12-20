@@ -103,7 +103,7 @@ class CharWordFusion(nn.Module):
         # self.char_len = char_len
         # self.word_len = word_len
         self.embed_size = embed_size
-        
+        self.num_tags = num_tags
         self.char_level = nn.ModuleDict({
             "char_embed": nn.Embedding(char_vocab_size,embed_size),
             "char_lstm": nn.LSTM(input_size=embed_size,hidden_size=hidden_size,num_layers=1,bidirectional=True),
