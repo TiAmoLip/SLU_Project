@@ -91,7 +91,7 @@ class CharWordFusion(nn.Module):
         self.loss_fct = nn.CrossEntropyLoss(ignore_index=pad_id)
     
     def pack_and_unpack(self,input_embedding, input_lengths,rnn):
-        packed_inputs = rnn_utils.pack_padded_sequence(input_embedding,input_lengths,batch_first=True,enforce_sorted=True)
+        packed_inputs = rnn_utils.pack_padded_sequence(input_embedding,input_lengths.to(torch.device("cpu")),batch_first=True,enforce_sorted=True)
         packed_rnn_out, _ = rnn(packed_inputs)
         rnn_out, unpacked_len = rnn_utils.pad_packed_sequence(rnn_out,batch_first=True)
         return rnn_out
