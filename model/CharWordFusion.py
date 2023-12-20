@@ -32,42 +32,6 @@ class SLUTagging(nn.Module):
 
         return tag_output
 
-    def decode(self, label_vocab, batch):
-        batch_size = len(batch)
-        labels = batch.labels
-        output = self.forward(batch)
-        prob = output[0]# bs,seq_len?,num_tags: 32,20,74
-        predictions = []
-        for i in range(batch_size):
-            pred = torch.argmax(prob[i], dim=-1).cpu().tolist()
-            pred_tuple = []
-            idx_buff, tag_buff, pred_tags = [], [], []
-            pred = pred[:len(batch.utt[i])]
-            for idx, tid in enumerate(pred):
-                tag = label_vocab.convert_idx_to_tag(tid)
-                pred_tags.append(tag)
-                if (tag == 'O' or tag.startswith('B')) and len(tag_buff) > 0:
-                    slot = '-'.join(tag_buff[0].split('-')[1:])
-                    value = ''.join([batch.utt[i][j] for j in idx_buff])
-                    idx_buff, tag_buff = [], []
-                    pred_tuple.append(f'{slot}-{value}')
-                    if tag.startswith('B'):
-                        idx_buff.append(idx)
-                        tag_buff.append(tag)
-                elif tag.startswith('I') or tag.startswith('B'):
-                    idx_buff.append(idx)
-                    tag_buff.append(tag)
-            if len(tag_buff) > 0:
-                slot = '-'.join(tag_buff[0].split('-')[1:])
-                value = ''.join([batch.utt[i][j] for j in idx_buff])
-                pred_tuple.append(f'{slot}-{value}')
-            predictions.append(pred_tuple)
-        if len(output) == 1:
-            return predictions
-        else:
-            loss = output[1]
-            return predictions, labels, loss.cpu().item()
-
 
 class TaggingFNNDecoder(nn.Module):
 
@@ -125,24 +89,32 @@ class CharWordFusion(nn.Module):
             nn.Linear(hidden_size, num_tags),
         )
         self.loss_fct = nn.CrossEntropyLoss(ignore_index=pad_id)
+    
+    def pack_and_unpack(self,input_embedding, input_lengths,rnn):
+        packed_inputs = rnn_utils.pack_padded_sequence(input_embedding,input_lengths,batch_first=True,enforce_sorted=True)
+        packed_rnn_out, _ = rnn(packed_inputs)
+        rnn_out, unpacked_len = rnn_utils.pad_packed_sequence(rnn_out,batch_first=True)
+        return rnn_out
     def forward(self,batch):
         
         tag_ids = batch.tag_ids
         tag_mask = batch.tag_mask
         char_ids = batch.input_ids
-        lengths = batch.lengths
+        char_lengths = batch.char_lengths
         word_ids= batch.word_ids
-        
+        word_lengths = batch.word_lengths
         
         char_emb = self.char_level['char_embed'](char_ids)
-        char_hidden ,_ = self.char_level['char_lstm'](char_emb)
-        char_hidden = self.char_level['char_project'](char_hidden)
-        hidden = torch.cat([self.char_level['char_attention'](char_emb,char_emb,char_emb)[0],char_hidden],dim=-1)
         
-        # word_emb = self.word_level['word_embed'](word_ids)
-        # word_hidden,_ = self.word_level['word_lstm'](word_emb)
-        # word_hidden = self.word_level['word_project'](word_hidden)
-        # word_hidden = torch.cat([self.word_level['word_attention'](word_emb,char_emb,char_emb)[0],word_hidden],dim=-1)
+        
+        char_hidden ,_ = self.char_level['char_lstm'](char_emb)
+        char_hidden = self.pack_and_unpack(char_hidden,char_lengths,self.char_level['char_project'])
+        hidden = torch.cat([self.char_level['char_attention'](char_emb,char_emb,char_emb,attn_mask = char_lengths)[0],char_hidden],dim=-1)
+        
+        word_emb = self.word_level['word_embed'](word_ids)
+        word_hidden,_ = self.pack_and_unpack(word_emb,word_lengths,self.word_level['word_lstm'])
+        word_hidden = self.word_level['word_project'](word_hidden)
+        word_hidden = torch.cat([self.word_level['word_attention'](word_emb,char_emb,char_emb,attn_mask = word_lengths)[0],word_hidden],dim=-1)
         
         # char hidden: (bs, char_seq, embed_size), word hidden: (bs, word_seq, embed_size)
         # how to merge charseq and wordseq?

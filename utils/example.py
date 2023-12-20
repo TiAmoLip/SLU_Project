@@ -52,6 +52,6 @@ class Example():
                 self.tags[bidx] = f'B-{slot}'# 这个B-slot难道是开始的意思?
         self.slotvalue = [f'{slot}-{value}' for slot, value in self.slot.items()]
         self.input_idx = [Example.char_vocab[c] for c in self.utt]
-        self.word_idx = [Example.word_vocab[w] for w in Example.word_vocab.tokenizer(self.utt).tokens()]
+        self.word_idx = [Example.word_vocab[w] for w in Example.word_vocab.tokenizer.tokenize(self.utt)]
         l = Example.label_vocab
         self.tag_id = [l.convert_tag_to_idx(tag) for tag in self.tags]

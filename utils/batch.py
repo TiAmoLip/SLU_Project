@@ -23,7 +23,8 @@ def from_example_list(args, ex_list, device='cpu', train=True):
     input_ids = [ex.input_idx + [pad_idx] * (max_len - len(ex.input_idx)) for ex in ex_list]
     word_ids = [ex.word_idx + [pad_idx] * (max_len - len(ex.word_idx)) for ex in ex_list]
     batch.input_ids = torch.tensor(input_ids, dtype=torch.long, device=device)
-    batch.lengths = input_lens
+    batch.char_lengths = input_lens
+    batch.word_lengths = input_word_lens
     batch.did = [ex.did for ex in ex_list]
     batch.word_ids = torch.tensor(word_ids, dtype=torch.long, device=device)
 

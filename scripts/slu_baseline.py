@@ -121,7 +121,7 @@ if not args.testing:
     nsamples, best_result = len(train_dataset), {'dev_acc': 0., 'dev_f1': 0.}
     train_index, step_size = np.arange(nsamples), args.batch_size
     print('Start training ......')
-    model.char_level['char_embed'].requires_grad_(False)
+    # model.char_level['char_embed'].requires_grad_(False)
     with tqdm(total=args.max_epoch*(nsamples//step_size)) as pbar:
         for i in range(args.max_epoch):
             start_time = time.time()
