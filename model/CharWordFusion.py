@@ -118,7 +118,7 @@ class CharWordFusion(nn.Module):
             "word_attention": nn.MultiheadAttention(embed_dim=embed_size,num_heads=4,dropout=0.1,batch_first=True),
             # "word_conv": nn.Conv1d(word_len,char_len,3,1,1)
         })
-        self.fuse = nn.MultiheadAttention(embed_dimembed_size+2*hidden_size,num_heads=4,dropout=0.1,batch_first=True)
+        self.fuse = nn.MultiheadAttention(embed_dim=embed_size+2*hidden_size,num_heads=4,dropout=0.1,batch_first=True)
         self.output_layer = nn.Sequential(
             nn.Linear(embed_size+2*hidden_size, hidden_size),
             nn.LeakyReLU(0.2,inplace=True),
