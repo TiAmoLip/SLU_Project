@@ -18,6 +18,8 @@ from model.CharWordFusion import CharWordFusion
 args = init_args(sys.argv[1:])
 set_random_seed(args.seed)
 device = set_torch_device(args.device)
+torch.set_default_tensor_type("torch.cuda.FloatTensor")
+torch.cuda.set_device("0")
 print("Initialization finished ...")
 print("Random seed is set to %d" % (args.seed))
 print("Use GPU with index %s" % (args.device) if args.device >= 0 else "Use CPU as target torch device")
