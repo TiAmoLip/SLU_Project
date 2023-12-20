@@ -148,7 +148,7 @@ class CharWordFusion(nn.Module):
         # how to merge charseq and wordseq?
         # 1. concat
         hidden = torch.cat((char_hidden,word_hidden),dim=1)
-        hidden = self.fuse(hidden,hidden,hidden)[0][:,:self.word_len,:]
+        hidden = self.fuse(hidden,hidden,hidden)[0][:,:len(tag_ids[0]),:]
         logits = self.output_layer(hidden)
         logits += (1 - tag_mask).unsqueeze(-1).repeat(1, 1, self.num_tags) * -1e32
         prob = torch.softmax(logits, dim=-1)
