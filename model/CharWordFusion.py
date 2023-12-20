@@ -91,10 +91,14 @@ class CharWordFusion(nn.Module):
         self.loss_fct = nn.CrossEntropyLoss(ignore_index=pad_id)
     
     def pack_and_unpack(self,input_embedding, input_lengths,rnn):
-        packed_inputs = rnn_utils.pack_padded_sequence(input_embedding,input_lengths.to(torch.device("cpu")),batch_first=True,enforce_sorted=True)
+        packed_inputs = rnn_utils.pack_padded_sequence(input_embedding,torch.tensor(input_lengths).to(torch.device("cpu")),batch_first=True,enforce_sorted=True)
         packed_rnn_out, _ = rnn(packed_inputs)
         rnn_out, unpacked_len = rnn_utils.pad_packed_sequence(rnn_out,batch_first=True)
         return rnn_out
+    
+    def length_to_mask(self,max_len, lengths):
+        mask = torch.tensor([[1]*l + [0]*(max_len - l) for l in lengths],dtype=torch.bool)
+    
     def forward(self,batch):
         
         tag_ids = batch.tag_ids
@@ -109,12 +113,12 @@ class CharWordFusion(nn.Module):
         
         char_hidden ,_ = self.char_level['char_lstm'](char_emb)
         char_hidden = self.pack_and_unpack(char_hidden,char_lengths,self.char_level['char_project'])
-        hidden = torch.cat([self.char_level['char_attention'](char_emb,char_emb,char_emb,attn_mask = char_lengths)[0],char_hidden],dim=-1)
+        hidden = torch.cat([self.char_level['char_attention'](char_emb,char_emb,char_emb,attn_mask = self.length_to_mask(char_hidden.shape[1],char_lengths))[0],char_hidden],dim=-1)
         
         word_emb = self.word_level['word_embed'](word_ids)
         word_hidden,_ = self.pack_and_unpack(word_emb,word_lengths,self.word_level['word_lstm'])
         word_hidden = self.word_level['word_project'](word_hidden)
-        word_hidden = torch.cat([self.word_level['word_attention'](word_emb,char_emb,char_emb,attn_mask = word_lengths)[0],word_hidden],dim=-1)
+        word_hidden = torch.cat([self.word_level['word_attention'](word_emb,word_emb,word_emb,attn_mask = self.length_to_mask(word_hidden.shape[1],word_lengths))[0],word_hidden],dim=-1)
         
         # char hidden: (bs, char_seq, embed_size), word hidden: (bs, word_seq, embed_size)
         # how to merge charseq and wordseq?
