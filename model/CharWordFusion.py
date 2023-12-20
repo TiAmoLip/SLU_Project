@@ -110,21 +110,18 @@ class CharWordFusion(nn.Module):
         
         char_emb = self.char_level['char_embed'](char_ids)
         
-        
-        char_hidden ,_ = self.char_level['char_lstm'](char_emb)
-        char_hidden = self.pack_and_unpack(char_hidden,char_lengths,self.char_level['char_project'])
-        hidden = torch.cat([self.char_level['char_attention'](char_emb,char_emb,char_emb,attn_mask = self.length_to_mask(char_hidden.shape[1],char_lengths))[0],char_hidden],dim=-1)
-        
+        char_hidden = self.pack_and_unpack(char_hidden,char_lengths,self.char_level['char_lstm'])
+        char_hidden ,_ = self.char_level['char_project'](char_hidden)
+        char_hidden = torch.cat([self.char_level['char_attention'](char_emb,char_emb,char_emb,attn_mask = self.length_to_mask(char_hidden.shape[1],char_lengths))[0],char_hidden],dim=-1)
+
         word_emb = self.word_level['word_embed'](word_ids)
         word_hidden,_ = self.pack_and_unpack(word_emb,word_lengths,self.word_level['word_lstm'])
         word_hidden = self.word_level['word_project'](word_hidden)
         word_hidden = torch.cat([self.word_level['word_attention'](word_emb,word_emb,word_emb,attn_mask = self.length_to_mask(word_hidden.shape[1],word_lengths))[0],word_hidden],dim=-1)
-        
-        # char hidden: (bs, char_seq, embed_size), word hidden: (bs, word_seq, embed_size)
-        # how to merge charseq and wordseq?
-        # 1. concat
-        # hidden = torch.cat((char_hidden,word_hidden),dim=1)
-        hidden = self.fuse(hidden,hidden,hidden)[0][:,:len(tag_ids[0]),:]
+
+        hidden = torch.cat([char_hidden,word_hidden],dim=1)
+
+        hidden = self.fuse(hidden,hidden,hidden,attn_mask = self.length_to_mask(hidden.shape[1], list(char_lengths)+list(word_lengths)))[0][:,:len(tag_ids[0]),:]
         logits = self.output_layer(hidden)
         logits += (1 - tag_mask).unsqueeze(-1).repeat(1, 1, self.num_tags) * -1e32
         prob = torch.softmax(logits, dim=-1)
