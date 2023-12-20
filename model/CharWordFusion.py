@@ -93,7 +93,7 @@ class CharWordFusion(nn.Module):
     def pack_and_unpack(self,input_embedding, input_lengths,rnn):
         packed_inputs = rnn_utils.pack_padded_sequence(input_embedding,torch.tensor(input_lengths).to(torch.device("cpu")),batch_first=True,enforce_sorted=True)
         packed_rnn_out, _ = rnn(packed_inputs)
-        rnn_out, unpacked_len = rnn_utils.pad_packed_sequence(rnn_out,batch_first=True)
+        rnn_out, unpacked_len = rnn_utils.pad_packed_sequence(packed_rnn_out,batch_first=True)
         return rnn_out
     
     def length_to_mask(self,max_len, lengths):
