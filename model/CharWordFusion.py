@@ -91,14 +91,15 @@ class CharWordFusion(nn.Module):
         self.loss_fct = nn.CrossEntropyLoss(ignore_index=pad_id)
     
     def pack_and_unpack(self,input_embedding, input_lengths,rnn):
-        packed_inputs = rnn_utils.pack_padded_sequence(input_embedding,torch.tensor(input_lengths).to(torch.device("cpu")),batch_first=True,enforce_sorted=True)
+        l = sorted(input_lengths,reverse=True)
+        packed_inputs = rnn_utils.pack_padded_sequence(input_embedding,torch.tensor(l).to(torch.device("cpu")),batch_first=True,enforce_sorted=True)
         packed_rnn_out, _ = rnn(packed_inputs)
         rnn_out, unpacked_len = rnn_utils.pad_packed_sequence(packed_rnn_out,batch_first=True)
         return rnn_out
     
     def length_to_mask(self,max_len, lengths):
         mask = torch.tensor([[1]*l + [0]*(max_len - l) for l in lengths],dtype=torch.bool)
-    
+        return mask
     def forward(self,batch):
         
         tag_ids = batch.tag_ids
