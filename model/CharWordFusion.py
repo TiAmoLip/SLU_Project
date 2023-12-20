@@ -110,7 +110,7 @@ class CharWordFusion(nn.Module):
             "char_project":nn.Linear(hidden_size*2,hidden_size),
             "char_attention": nn.MultiheadAttention(embed_dim=embed_size,num_heads=4,dropout=0.1,batch_first=True)
         })
-        self.char_level['char_embed'].requires_grad_(False)
+        # self.char_level['char_embed'].requires_grad_(False)
         # self.word_level = nn.ModuleDict({
         #     "word_embed": nn.Embedding(word_vocab_size,embed_size),
         #     "word_lstm": nn.LSTM(input_size=embed_size,hidden_size=hidden_size,num_layers=1,bidirectional=True),
