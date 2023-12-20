@@ -110,7 +110,7 @@ class CharWordFusion(nn.Module):
         
         char_emb = self.char_level['char_embed'](char_ids)
         
-        char_hidden = self.pack_and_unpack(char_hidden,char_lengths,self.char_level['char_lstm'])
+        char_hidden = self.pack_and_unpack(char_emb,char_lengths,self.char_level['char_lstm'])
         char_hidden ,_ = self.char_level['char_project'](char_hidden)
         char_hidden = torch.cat([self.char_level['char_attention'](char_emb,char_emb,char_emb,attn_mask = self.length_to_mask(char_hidden.shape[1],char_lengths))[0],char_hidden],dim=-1)
 
