@@ -113,12 +113,12 @@ class CharWordFusion(nn.Module):
         
         char_hidden = self.pack_and_unpack(char_emb,char_lengths,self.char_level['char_lstm'])
         char_hidden = self.char_level['char_project'](char_hidden)
-        char_hidden = torch.cat([self.char_level['char_attention'](char_emb,char_emb,char_emb,attn_mask = self.length_to_mask(char_hidden.shape[1],char_lengths))[0],char_hidden],dim=-1)
+        char_hidden = torch.cat([self.char_level['char_attention'](char_emb,char_emb,char_emb,attn_mask = self.length_to_mask(char_emb.shape[1],char_lengths))[0],char_hidden],dim=-1)
 
         word_emb = self.word_level['word_embed'](word_ids)
         word_hidden = self.pack_and_unpack(word_emb,word_lengths,self.word_level['word_lstm'])
         word_hidden = self.word_level['word_project'](word_hidden)
-        word_hidden = torch.cat([self.word_level['word_attention'](word_emb,word_emb,word_emb,attn_mask = self.length_to_mask(word_hidden.shape[1],word_lengths))[0],word_hidden],dim=-1)
+        word_hidden = torch.cat([self.word_level['word_attention'](word_emb,word_emb,word_emb,attn_mask = self.length_to_mask(word_emb.shape[1],word_lengths))[0],word_hidden],dim=-1)
 
         hidden = torch.cat([char_hidden,word_hidden],dim=1)
 
