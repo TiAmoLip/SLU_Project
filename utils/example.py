@@ -16,7 +16,7 @@ class Example():
     def configuration(cls, root, train_path=None, word2vec_path=None):
         cls.evaluator = Evaluator()
         cls.char_vocab = CharVocab(padding=True, unk=True, filepath=train_path)
-        cls.word_vocab = WordVocab(padding=True, unk=True, filepath=train_path, tokenizer=AutoTokenizer("bert-base-chinese"))
+        cls.word_vocab = WordVocab(padding=True, unk=True, filepath=train_path, tokenizer=AutoTokenizer.from_pretrained("bert-base-chinese"))
         cls.word2vec = Word2vecUtils(word2vec_path)
         cls.label_vocab = LabelVocab(root)
 
