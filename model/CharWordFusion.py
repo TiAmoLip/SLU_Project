@@ -107,17 +107,23 @@ class CharWordFusion(nn.Module):
         self.char_level = nn.ModuleDict({
             "char_embed": nn.Embedding(char_vocab_size,embed_size),
             "char_lstm": nn.LSTM(input_size=embed_size,hidden_size=hidden_size,num_layers=1,bidirectional=True),
+            "char_project":nn.Linear(hidden_size*2,hidden_size),
             "char_attention": nn.MultiheadAttention(embed_dim=embed_size,num_heads=4,dropout=0.1,batch_first=True)
         })
         
         self.word_level = nn.ModuleDict({
             "word_embed": nn.Embedding(word_vocab_size,embed_size),
             "word_lstm": nn.LSTM(input_size=embed_size,hidden_size=hidden_size,num_layers=1,bidirectional=True),
+            "word_project":nn.Linear(hidden_size*2,hidden_size),
             "word_attention": nn.MultiheadAttention(embed_dim=embed_size,num_heads=4,dropout=0.1,batch_first=True),
             # "word_conv": nn.Conv1d(word_len,char_len,3,1,1)
         })
         self.fuse = nn.MultiheadAttention(embed_dim=embed_size,num_heads=4,dropout=0.1,batch_first=True)
-        self.output_layer = nn.Linear(embed_size, num_tags)
+        self.output_layer = nn.Sequential(
+            nn.Linear(embed_size+2*hidden_size, hidden_size),
+            nn.LeakyReLU(0.2,inplace=True),
+            nn.Linear(hidden_size, num_tags),
+        )
         self.loss_fct = nn.CrossEntropyLoss(ignore_index=pad_id)
     def forward(self,batch):
         
@@ -129,18 +135,20 @@ class CharWordFusion(nn.Module):
         
         
         char_emb = self.char_level['char_embed'](char_ids)
-        char_hidden = self.char_level['char_lstm'](char_emb)
+        char_hidden ,_ = self.char_level['char_lstm'](char_emb)
+        char_hidden = self.char_level['char_project'](char_hidden)
         char_hidden = torch.cat(self.char_level['char_attention'](char_emb,char_emb,char_emb)[0],char_hidden,dim=-1)
         
         word_emb = self.word_level['word_embed'](word_ids)
-        word_hidden = self.word_level['word_lstm'](word_emb)
+        word_hidden,_ = self.word_level['word_lstm'](word_emb)
+        word_hidden = self.word_level['word_project'](word_hidden)
         word_hidden = torch.cat(self.word_level['word_attention'](word_emb,char_emb,char_emb)[0],word_hidden,dim=-1)
         
         # char hidden: (bs, char_seq, embed_size), word hidden: (bs, word_seq, embed_size)
         # how to merge charseq and wordseq?
         # 1. concat
         hidden = torch.cat((char_hidden,word_hidden),dim=1)
-        hidden = self.fuse(hidden,hidden,hidden)[0][:self.word_len]
+        hidden = self.fuse(hidden,hidden,hidden)[0][:,:self.word_len,:]
         logits = self.output_layer(hidden)
         logits += (1 - tag_mask).unsqueeze(-1).repeat(1, 1, self.num_tags) * -1e32
         prob = torch.softmax(logits, dim=-1)
