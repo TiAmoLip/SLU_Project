@@ -130,11 +130,11 @@ class CharWordFusion(nn.Module):
         
         char_emb = self.char_level['char_embed'](char_ids)
         char_hidden = self.char_level['char_lstm'](char_emb)
-        char_hidden = torch.cat(self.char_level['char_attention'](char_emb)[0],char_hidden,dim=-1)
+        char_hidden = torch.cat(self.char_level['char_attention'](char_emb,char_emb,char_emb)[0],char_hidden,dim=-1)
         
         word_emb = self.word_level['word_embed'](word_ids)
         word_hidden = self.word_level['word_lstm'](word_emb)
-        word_hidden = torch.cat(self.word_level['word_attention'](word_emb)[0],word_hidden,dim=-1)
+        word_hidden = torch.cat(self.word_level['word_attention'](word_emb,char_emb,char_emb)[0],word_hidden,dim=-1)
         
         # char hidden: (bs, char_seq, embed_size), word hidden: (bs, word_seq, embed_size)
         # how to merge charseq and wordseq?
