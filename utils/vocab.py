@@ -76,7 +76,7 @@ class WordVocab():
         for word in word_freq:
             if word_freq[word] >= min_freq:
                 idx = len(self.word2id)
-                self.word2id[word], self.id2char[idx] = idx, word 
+                self.word2id[word], self.id2word[idx] = idx, word 
 
     def __len__(self):
         return len(self.word2id)
