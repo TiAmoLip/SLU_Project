@@ -13,7 +13,13 @@ def from_example_list(args, ex_list, device='cpu', train=True):
 
     batch.utt = [ex.utt for ex in ex_list]
     input_lens = [len(ex.input_idx) for ex in ex_list] # input idx极有可能是将文字转换为对应的id input_lens: [2,3 ,1]
-    max_len = max(input_lens)
+    
+    input_word_lens = [len(ex.word_idx) for ex in ex_list]
+    
+    max_len = max(input_lens+input_word_lens)
+    
+    
+    
     input_ids = [ex.input_idx + [pad_idx] * (max_len - len(ex.input_idx)) for ex in ex_list]
     word_ids = [ex.word_idx + [pad_idx] * (max_len - len(ex.word_idx)) for ex in ex_list]
     batch.input_ids = torch.tensor(input_ids, dtype=torch.long, device=device)
