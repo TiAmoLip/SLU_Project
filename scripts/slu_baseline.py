@@ -11,8 +11,9 @@ from utils.initialization import *
 from utils.example import Example
 from utils.batch import from_example_list
 from utils.vocab import PAD
-from model.slu_baseline_tagging import SLUTagging
-from model.bert_base_model import BertBasedModel
+# from model.slu_baseline_tagging import SLUTagging
+# from model.bert_base_model import BertBasedModel
+from model.CharWordFusion import CharWordFusion
 # initialization params, output path, logger, random seed and torch.device
 args = init_args(sys.argv[1:])
 set_random_seed(args.seed)
@@ -33,19 +34,21 @@ dev_dataset = Example.load_dataset(dev_path)
 print("Load dataset and database finished, cost %.4fs ..." % (time.time() - start_time))
 print("Dataset size: train -> %d ; dev -> %d" % (len(train_dataset), len(dev_dataset)))
 
-args.vocab_size = Example.word_vocab.vocab_size#1741
-args.pad_idx = Example.word_vocab[PAD]#0
+args.vocab_size = Example.char_vocab.vocab_size#1741
+args.pad_idx = Example.char_vocab[PAD]#0
 args.num_tags = Example.label_vocab.num_tags#74
 args.tag_pad_idx = Example.label_vocab.convert_tag_to_idx(PAD)#0
 
 
 
-if args.load_embedding:
+# if args.load_embedding:
     
-    model = SLUTagging(args).to(device)
-    Example.word2vec.load_embeddings(model.word_embed, Example.word_vocab, device=device)
-else:
-    model = BertBasedModel(args).to(device)
+#     model = SLUTagging(args).to(device)
+#     Example.word2vec.load_embeddings(model.word_embed, Example.char_vocab, device=device)
+# else:
+#     model = BertBasedModel(args).to(device)
+model = CharWordFusion(Example.char_vocab.vocab_size,Example.word_vocab.vocab_size,args.embed_size,args.hidden_size,Example.label_vocab.num_tags,Example.char_vocab[PAD])
+    
 if args.testing:
     check_point = torch.load(open('model.bin', 'rb'), map_location=device)
     model.load_state_dict(check_point['model'])

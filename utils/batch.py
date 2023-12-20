@@ -12,12 +12,14 @@ def from_example_list(args, ex_list, device='cpu', train=True):
     tag_pad_idx = args.tag_pad_idx
 
     batch.utt = [ex.utt for ex in ex_list]
-    input_lens = [len(ex.input_idx) for ex in ex_list] # input idx极有可能是将文字转换为对应的id
+    input_lens = [len(ex.input_idx) for ex in ex_list] # input idx极有可能是将文字转换为对应的id input_lens: [2,3 ,1]
     max_len = max(input_lens)
     input_ids = [ex.input_idx + [pad_idx] * (max_len - len(ex.input_idx)) for ex in ex_list]
+    word_ids = [ex.word_idx + [pad_idx] * (max_len - len(ex.word_idx)) for ex in ex_list]
     batch.input_ids = torch.tensor(input_ids, dtype=torch.long, device=device)
     batch.lengths = input_lens
     batch.did = [ex.did for ex in ex_list]
+    batch.word_ids = torch.tensor(word_ids, dtype=torch.long, device=device)
 
     if train:
         batch.labels = [ex.slotvalue for ex in ex_list]# slot value: ['inform-操作-导航', 'inform-终点名称-贵州省炉盘水市水城县双水六六高速路口']

@@ -4,14 +4,55 @@ PAD = '<pad>'
 UNK = '<unk>'
 BOS = '<s>'
 EOS = '</s>'
-
-
-class Vocab():
+class CharVocab():
 
     def __init__(self, padding=False, unk=False, min_freq=1, filepath=None):
-        super(Vocab, self).__init__()
+        super(CharVocab, self).__init__()
+        self.char2id = dict()
+        self.id2char = dict()
+
+
+        if padding:
+            idx = len(self.char2id)
+            self.char2id[PAD], self.id2char[idx] = idx, PAD
+        if unk:
+            idx = len(self.char2id)
+            self.char2id[UNK], self.id2char[idx] = idx, UNK
+
+        if filepath is not None:
+            self.from_train(filepath, min_freq=min_freq)
+
+    def from_train(self, filepath, min_freq=1):
+        with open(filepath, 'r') as f:
+            trains = json.load(f)
+        char_freq = {}
+        for data in trains:
+            for utt in data:
+                text = utt['manual_transcript']# 这是单个句子
+                for char in text:
+                    char_freq[char] = char_freq.get(char, 0) + 1
+                
+        for char in char_freq:
+            if char_freq[char] >= min_freq:
+                idx = len(self.char2id)
+                self.char2id[char], self.id2char[idx] = idx, char
+
+
+    def __len__(self):
+        return len(self.char2id)
+
+    @property
+    def vocab_size(self):
+        return len(self.char2id)
+
+    def __getitem__(self, key):
+        return self.char2id.get(key, self.char2id[UNK])
+
+class WordVocab():
+    def __init__(self,padding=False, unk=False, min_freq=1, filepath=None, tokenizer=None) -> None:
         self.word2id = dict()
         self.id2word = dict()
+        self.tokenizer = tokenizer
         if padding:
             idx = len(self.word2id)
             self.word2id[PAD], self.id2word[idx] = idx, PAD
@@ -21,20 +62,21 @@ class Vocab():
 
         if filepath is not None:
             self.from_train(filepath, min_freq=min_freq)
-
     def from_train(self, filepath, min_freq=1):
         with open(filepath, 'r') as f:
             trains = json.load(f)
         word_freq = {}
         for data in trains:
             for utt in data:
-                text = utt['manual_transcript']
-                for char in text:
-                    word_freq[char] = word_freq.get(char, 0) + 1
+                text = utt['manual_transcript']# 这是单个句子
+                words = self.tokenizer(text).tokens()
+                for word in words:
+                    word_freq[word] = word_freq.get(word, 0)+1
+        
         for word in word_freq:
             if word_freq[word] >= min_freq:
                 idx = len(self.word2id)
-                self.word2id[word], self.id2word[idx] = idx, word
+                self.word2id[word], self.id2char[idx] = idx, word 
 
     def __len__(self):
         return len(self.word2id)
@@ -45,7 +87,6 @@ class Vocab():
 
     def __getitem__(self, key):
         return self.word2id.get(key, self.word2id[UNK])
-
 
 class LabelVocab():
 
