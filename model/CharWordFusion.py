@@ -33,10 +33,10 @@ class SLUTagging(nn.Module):
         return tag_output
 
 
-class TaggingFNNDecoder(nn.Module):
+class OutputLayer(nn.Module):
 
     def __init__(self, input_size, num_tags, pad_id):
-        super(TaggingFNNDecoder, self).__init__()
+        super(OutputLayer, self).__init__()
         self.num_tags = num_tags
         self.output_layer = nn.Linear(input_size, num_tags)
         self.loss_fct = nn.CrossEntropyLoss(ignore_index=pad_id)
@@ -59,7 +59,26 @@ class Adapter(nn.Module):
         self.Wf = nn.Parameter(torch.randn())
         # 这里可以考虑dilated conv或者多层次conv或者拿个矩阵，但我现在还没想好
         
-
+class rnn_attn(nn.Module):
+    def __init__(self, vocab_size,embed_size,hidden_size) -> None:
+        super().__init__()
+        self.embed = nn.Embedding(vocab_size,embed_size)
+        self.lstm = nn.LSTM(input_size=embed_size,hidden_size=hidden_size,num_layers=1,bidirectional=True)
+        self.attn = nn.MultiheadAttention(embed_dim=embed_size,num_heads=4,dropout=0.1,batch_first=True)
+        self.project = nn.Sequential(
+            nn.Linear(2*hidden_size,hidden_size),
+            nn.LeakyReLU(0.2,inplace=True),
+            nn.Linear(hidden_size,hidden_size)
+        )
+    
+    def forward(self,input_ids,input_lengths):
+        char_emb = self.embed(input_ids)
+        
+        char_hidden1 = CharWordFusion.pack_and_unpack(char_emb.clone(),input_lengths,self.lstm)
+        char_hidden1 = self.project(char_hidden1)
+        attn_mask = CharWordFusion.length_to_mask(char_emb.shape[1],input_lengths[:char_emb.shape[1]])
+        char_hidden2 = self.attn(char_emb,char_emb,char_emb,attn_mask=attn_mask)[0]
+        return torch.cat([char_hidden1,char_hidden2],dim=1)
 
 class CharWordFusion(nn.Module):
     def __init__(self, char_vocab_size,word_vocab_size,embed_size,hidden_size,num_tags,pad_id) -> None:
@@ -68,40 +87,27 @@ class CharWordFusion(nn.Module):
         # self.word_len = word_len
         self.embed_size = embed_size
         self.num_tags = num_tags
-        self.char_level = nn.ModuleDict({
-            "char_embed": nn.Embedding(char_vocab_size,embed_size),
-            "char_lstm": nn.LSTM(input_size=embed_size,hidden_size=hidden_size,num_layers=1,bidirectional=True),
-            "char_project":nn.Linear(hidden_size*2,hidden_size),
-            "char_attention": nn.MultiheadAttention(embed_dim=embed_size,num_heads=4,dropout=0.1,batch_first=True)
-        })
-        # self.char_level['char_embed'].requires_grad_(False)
-        self.word_level = nn.ModuleDict({
-            "word_embed": nn.Embedding(word_vocab_size,embed_size),
-            "word_lstm": nn.LSTM(input_size=embed_size,hidden_size=hidden_size,num_layers=1,bidirectional=True),
-            "word_project":nn.Linear(hidden_size*2,hidden_size),
-            "word_attention": nn.MultiheadAttention(embed_dim=embed_size,num_heads=4,dropout=0.1,batch_first=True),
-            # "word_conv": nn.Conv1d(word_len,char_len,3,1,1)
-        })
+        self.char_level = rnn_attn(char_vocab_size,embed_size,hidden_size)
+        self.word_level = rnn_attn(word_vocab_size,embed_size,hidden_size)
+
         self.fuse = nn.MultiheadAttention(embed_dim=embed_size+hidden_size,num_heads=4,dropout=0.1,batch_first=True)
-        self.output_layer = nn.Sequential(
-            nn.Linear(embed_size+hidden_size, hidden_size),
-            nn.LeakyReLU(0.2,inplace=True),
-            nn.Linear(hidden_size, num_tags),
-        )
+
+        self.output = OutputLayer(embed_size+hidden_size,num_tags,pad_id)
         self.loss_fct = nn.CrossEntropyLoss(ignore_index=pad_id)
-    
-    def pack_and_unpack(self,input_embedding, input_lengths,rnn):
+    @staticmethod
+    def pack_and_unpack(input_embedding, input_lengths,rnn):
         l = sorted(input_lengths,reverse=True)
         packed_inputs = rnn_utils.pack_padded_sequence(input_embedding.clone(),torch.tensor(l).to(torch.device("cpu")),batch_first=True,enforce_sorted=True)
         packed_rnn_out, _ = rnn(packed_inputs)
         rnn_out, unpacked_len = rnn_utils.pad_packed_sequence(packed_rnn_out,batch_first=True)
         return rnn_out
-    
-    def length_to_mask(self,max_len, lengths):
+
+    @staticmethod
+    def length_to_mask(max_len, lengths):
         mask = torch.tensor([[1]*l + [0]*(max_len - l) for l in lengths],dtype=torch.bool)
         return mask
     def forward(self,batch):
-        
+        torch.save(batch,"example.pt")
         tag_ids = batch.tag_ids
         tag_mask = batch.tag_mask
         char_ids = batch.input_ids
@@ -109,27 +115,17 @@ class CharWordFusion(nn.Module):
         word_ids= batch.word_ids
         word_lengths = batch.word_lengths
         
-        char_emb = self.char_level['char_embed'](char_ids)
-        
-        char_hidden = self.pack_and_unpack(char_emb,char_lengths,self.char_level['char_lstm'])
-        char_hidden = self.char_level['char_project'](char_hidden)
-        char_hidden = torch.cat([self.char_level['char_attention'](char_emb,char_emb,char_emb,attn_mask = self.length_to_mask(char_emb.shape[1],char_lengths[:char_emb.shape[1]]))[0],char_hidden],dim=-1)
-
-        word_emb = self.word_level['word_embed'](word_ids)
-        word_hidden = self.pack_and_unpack(word_emb,word_lengths,self.word_level['word_lstm'])
-        word_hidden = self.word_level['word_project'](word_hidden)
-        word_hidden = torch.cat([self.word_level['word_attention'](word_emb,word_emb,word_emb,attn_mask = self.length_to_mask(word_emb.shape[1],word_lengths[:word_emb.shape[1]]))[0],word_hidden],dim=-1)
-
+        char_hidden = self.char_level(char_ids,char_lengths)
+        word_hidden = self.word_level(word_ids,word_lengths)
+    
+    
         hidden = torch.cat([char_hidden,word_hidden],dim=1)
 
-        hidden = self.fuse(hidden,hidden,hidden,attn_mask = self.length_to_mask(hidden.shape[1], list(char_lengths[:char_hidden.shape[1]])+list(word_lengths[:word_hidden.shape[1]])))[0][:,:len(tag_ids[0]),:]
-        logits = self.output_layer(hidden)
-        logits += (1 - tag_mask).unsqueeze(-1).repeat(1, 1, self.num_tags) * -1e32
-        prob = torch.softmax(logits, dim=-1)
-        if tag_ids is not None:
-            loss = self.loss_fct(logits.view(-1, logits.shape[-1]), tag_ids.view(-1))
-            return prob, loss
-        return (prob, )
+        fuse_mask = self.length_to_mask(hidden.shape[1], list(char_lengths[:char_hidden.shape[1]])+list(word_lengths[:word_hidden.shape[1]]))
+
+        hidden = self.fuse(hidden,hidden,hidden,attn_mask = fuse_mask)[0][:,:tag_ids.shape[1],:]
+
+        return self.output(hidden)
     def decode(self, label_vocab, batch):
         batch_size = len(batch)
         labels = batch.labels
