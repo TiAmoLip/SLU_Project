@@ -79,8 +79,8 @@ class rnn_attn(nn.Module):
         char_hidden1 = self.project(char_hidden1)
         attn_mask = CharWordFusion.length_to_mask(char_emb.shape[1],input_lengths[:char_emb.shape[1]])
         char_hidden2 = self.attn(char_emb,char_emb,char_emb,attn_mask=attn_mask)[0]
-        char_hidden2 = self.project2(char_hidden2)
-        return torch.cat([char_hidden1,char_hidden2],dim=1)
+
+        return torch.cat([char_hidden1,char_hidden2],dim=-1)
 
 class CharWordFusion(nn.Module):
     def __init__(self, char_vocab_size,word_vocab_size,embed_size,hidden_size,num_tags,pad_id) -> None:
