@@ -72,14 +72,17 @@ class rnn_attn(nn.Module):
         )
         self.project2 = nn.Linear(embed_size,hidden_size)
     
-    def forward(self,input_ids,input_lengths):
+    def forward(self,input_ids,input_lengths,mask=False):
         char_emb = self.embed(input_ids)
         
         char_hidden1 = CharWordFusion.pack_and_unpack(char_emb.clone(),input_lengths,self.lstm)
         char_hidden1 = self.project(char_hidden1)
-        print(f"char_emb: {char_emb.shape}")
-        attn_mask = CharWordFusion.length_to_mask(char_emb.shape[1],input_lengths)
-        print("attn_mask: {}".format(attn_mask.shape))
+        # print(f"char_emb: {char_emb.shape}")
+        if mask:
+            attn_mask = CharWordFusion.length_to_mask(char_emb.shape[1],input_lengths)
+        else:
+            attn_mask = None
+        # print("attn_mask: {}".format(attn_mask.shape))
         char_hidden2 = self.attn(char_emb,char_emb,char_emb,attn_mask=attn_mask)[0]
 
         return torch.cat([char_hidden1,char_hidden2],dim=-1)
@@ -121,13 +124,13 @@ class CharWordFusion(nn.Module):
         
         assert len(char_ids)==len(char_lengths)
         
-        char_hidden = self.char_level(char_ids,char_lengths)
-        word_hidden = self.word_level(word_ids,word_lengths)
+        char_hidden = self.char_level(char_ids,char_lengths,mask=False)
+        word_hidden = self.word_level(word_ids,word_lengths,mask=False)
     
     
         hidden = torch.cat([char_hidden,word_hidden],dim=1)
 
-        fuse_mask = self.length_to_mask(hidden.shape[1], list(char_lengths[:char_hidden.shape[1]])+list(word_lengths[:word_hidden.shape[1]]))
+        # fuse_mask = self.length_to_mask(hidden.shape[1], list(char_lengths[:char_hidden.shape[1]])+list(word_lengths[:word_hidden.shape[1]]))
 
         hidden = self.fuse(hidden,hidden,hidden)[0][:,:tag_ids.shape[1],:]
 
