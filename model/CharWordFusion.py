@@ -70,6 +70,7 @@ class rnn_attn(nn.Module):
             nn.LeakyReLU(0.2,inplace=True),
             nn.Linear(hidden_size,hidden_size)
         )
+        self.project2 = nn.Linear(embed_size,hidden_size)
     
     def forward(self,input_ids,input_lengths):
         char_emb = self.embed(input_ids)
@@ -78,6 +79,7 @@ class rnn_attn(nn.Module):
         char_hidden1 = self.project(char_hidden1)
         attn_mask = CharWordFusion.length_to_mask(char_emb.shape[1],input_lengths[:char_emb.shape[1]])
         char_hidden2 = self.attn(char_emb,char_emb,char_emb,attn_mask=attn_mask)[0]
+        char_hidden2 = self.project2(char_hidden2)
         return torch.cat([char_hidden1,char_hidden2],dim=1)
 
 class CharWordFusion(nn.Module):
@@ -107,7 +109,7 @@ class CharWordFusion(nn.Module):
         mask = torch.tensor([[1]*l + [0]*(max_len - l) for l in lengths],dtype=torch.bool)
         return mask
     def forward(self,batch):
-        torch.save(batch,"example.pt")
+        # torch.save(batch,"example.pt")
         tag_ids = batch.tag_ids
         tag_mask = batch.tag_mask
         char_ids = batch.input_ids
@@ -161,3 +163,5 @@ class CharWordFusion(nn.Module):
         else:
             loss = output[1]
             return predictions, labels, loss.cpu().item()
+        
+        
