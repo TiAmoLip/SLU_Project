@@ -45,10 +45,10 @@ args.tag_pad_idx = Example.label_vocab.convert_tag_to_idx(PAD)#0
 
 model = CharWordFusion(Example.char_vocab.vocab_size,Example.word_vocab.vocab_size,args.embed_size,args.hidden_size,Example.label_vocab.num_tags,Example.char_vocab[PAD])
 
-if args.load_embedding:
+# if args.load_embedding:
     
-#     model = SLUTagging(args).to(device)
-    Example.word2vec.load_embeddings(model.char_level['char_embed'], Example.char_vocab, device=device)
+# #     model = SLUTagging(args).to(device)
+#     Example.word2vec.load_embeddings(model.char_level['char_embed'], Example.char_vocab, device=device)
 # else:
 #     model = BertBasedModel(args).to(device)
     
