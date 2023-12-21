@@ -119,6 +119,8 @@ class CharWordFusion(nn.Module):
         word_ids= batch.word_ids
         word_lengths = batch.word_lengths
         
+        assert len(char_ids)==len(char_lengths)
+        
         char_hidden = self.char_level(char_ids,char_lengths)
         word_hidden = self.word_level(word_ids,word_lengths)
     
