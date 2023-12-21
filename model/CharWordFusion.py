@@ -127,7 +127,7 @@ class CharWordFusion(nn.Module):
 
         hidden = self.fuse(hidden,hidden,hidden,attn_mask = fuse_mask)[0][:,:tag_ids.shape[1],:]
 
-        return self.output(hidden)
+        return self.output(hidden, tag_mask, tag_ids)
     def decode(self, label_vocab, batch):
         batch_size = len(batch)
         labels = batch.labels
