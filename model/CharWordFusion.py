@@ -64,7 +64,7 @@ class rnn_attn(nn.Module):
         super().__init__()
         self.embed = nn.Embedding(vocab_size,embed_size)
         self.lstm = nn.LSTM(input_size=embed_size,hidden_size=hidden_size,num_layers=1,bidirectional=True)
-        self.attn = nn.MultiheadAttention(embed_dim=embed_size,num_heads=4,dropout=0.1,batch_first=True)
+        self.attn = nn.MultiheadAttention(embed_dim=embed_size,num_heads=4,dropout=0.1,)
         self.project = nn.Sequential(
             nn.Linear(2*hidden_size,hidden_size),
             nn.LeakyReLU(0.2,inplace=True),
@@ -78,7 +78,9 @@ class rnn_attn(nn.Module):
         char_hidden1 = CharWordFusion.pack_and_unpack(char_emb.clone(),input_lengths,self.lstm)
         char_hidden1 = self.project(char_hidden1)
         attn_mask = CharWordFusion.length_to_mask(char_emb.shape[1],input_lengths[:char_emb.shape[1]])
-        char_hidden2 = self.attn(char_emb,char_emb,char_emb,attn_mask=attn_mask)[0]
+        
+        char_hidden2 = self.attn(char_emb.permute(1,0,2),char_emb.permute(1,0,2),char_emb.permute(1,0,2),attn_mask=attn_mask)[0].permute(1,0,2)
+        
 
         return torch.cat([char_hidden1,char_hidden2],dim=-1)
 
@@ -92,7 +94,7 @@ class CharWordFusion(nn.Module):
         self.char_level = rnn_attn(char_vocab_size,embed_size,hidden_size)
         self.word_level = rnn_attn(word_vocab_size,embed_size,hidden_size)
 
-        self.fuse = nn.MultiheadAttention(embed_dim=embed_size+hidden_size,num_heads=4,dropout=0.1,batch_first=True)
+        self.fuse = nn.MultiheadAttention(embed_dim=embed_size+hidden_size,num_heads=4,dropout=0.1,)
 
         self.output = OutputLayer(embed_size+hidden_size,num_tags,pad_id)
         self.loss_fct = nn.CrossEntropyLoss(ignore_index=pad_id)
@@ -125,7 +127,7 @@ class CharWordFusion(nn.Module):
 
         fuse_mask = self.length_to_mask(hidden.shape[1], list(char_lengths[:char_hidden.shape[1]])+list(word_lengths[:word_hidden.shape[1]]))
 
-        hidden = self.fuse(hidden,hidden,hidden)[0][:,:tag_ids.shape[1],:]
+        hidden = (self.fuse(hidden.permute(1,0,2),hidden.permute(1,0,2),hidden.permute(1,0,2),attn_mask=fuse_mask)[0].permute(1,0,2))[:,:tag_ids.shape[1],:]
 
         return self.output(hidden, tag_mask, tag_ids)
     def decode(self, label_vocab, batch):
