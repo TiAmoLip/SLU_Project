@@ -1,5 +1,6 @@
 # coding: utf-8
-
+import torch
+import torch.nn as nn
 import sys, os, time, gc, json
 from torch.optim import Adam
 
@@ -13,7 +14,7 @@ from utils.batch import from_example_list
 from utils.vocab import PAD
 # from model.slu_baseline_tagging import SLUTagging
 # from model.bert_base_model import BertBasedModel
-from model.CharWordFusion import CharWordFusion
+from model.CharWordFusion import CharWordFusion,FusionBase
 # initialization params, output path, logger, random seed and torch.device
 args = init_args(sys.argv[1:])
 set_random_seed(args.seed)
@@ -36,15 +37,16 @@ dev_dataset = Example.load_dataset(dev_path)
 print("Load dataset and database finished, cost %.4fs ..." % (time.time() - start_time))
 print("Dataset size: train -> %d ; dev -> %d" % (len(train_dataset), len(dev_dataset)))
 
-args.vocab_size = Example.char_vocab.vocab_size#1741
+args.char_vocab_size = Example.char_vocab.vocab_size#1741
+args.word_vocab_size = Example.word_vocab.vocab_size
 args.pad_idx = Example.char_vocab[PAD]#0
 args.num_tags = Example.label_vocab.num_tags#74
 args.tag_pad_idx = Example.label_vocab.convert_tag_to_idx(PAD)#0
 
 
 
-model = CharWordFusion(Example.char_vocab.vocab_size,Example.word_vocab.vocab_size,args.embed_size,args.hidden_size,Example.label_vocab.num_tags,Example.char_vocab[PAD])
-
+# model = CharWordFusion(Example.char_vocab.vocab_size,Example.word_vocab.vocab_size,args.embed_size,args.hidden_size,Example.label_vocab.num_tags,Example.char_vocab[PAD])
+model = FusionBase()
 # if args.load_embedding:
     
 # #     model = SLUTagging(args).to(device)
