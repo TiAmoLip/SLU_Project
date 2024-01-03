@@ -17,7 +17,7 @@ class Word2vecUtils():
         """
         emb_size = module.weight.data.size(-1)
         outliers = 0
-        for word in vocab.word2id:
+        for word in vocab.char2id:
             if word == PAD: # PAD symbol is always 0-vector
                 module.weight.data[vocab[PAD]] = torch.zeros(emb_size, dtype=torch.float, device=device)
                 continue

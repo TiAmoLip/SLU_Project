@@ -1,9 +1,10 @@
 import json
 import pdb
 
-from utils.vocab import Vocab, LabelVocab
+from utils.vocab import CharVocab, LabelVocab, WordVocab
 from utils.word2vec import Word2vecUtils
 from utils.evaluator import Evaluator
+from transformers import AutoTokenizer
 # “B-X”表示此元素所在的片段属于X类型并且此元素在此片段的开头。
 
 # “I-X”表示此元素所在的片段属于X类型并且此元素在此片段的中间位置。
@@ -14,7 +15,8 @@ class Example():
     @classmethod
     def configuration(cls, root, train_path=None, word2vec_path=None):
         cls.evaluator = Evaluator()
-        cls.word_vocab = Vocab(padding=True, unk=True, filepath=train_path)
+        cls.char_vocab = CharVocab(padding=True, unk=True, filepath=train_path)
+        cls.word_vocab = WordVocab(padding=True, unk=True, filepath=train_path, tokenizer=AutoTokenizer.from_pretrained("bert-base-chinese"))
         cls.word2vec = Word2vecUtils(word2vec_path)
         cls.label_vocab = LabelVocab(root)
 
@@ -49,6 +51,7 @@ class Example():
                 self.tags[bidx: bidx + len(value)] = [f'I-{slot}'] * len(value)
                 self.tags[bidx] = f'B-{slot}'# 这个B-slot难道是开始的意思?
         self.slotvalue = [f'{slot}-{value}' for slot, value in self.slot.items()]
-        self.input_idx = [Example.word_vocab[c] for c in self.utt]
+        self.input_idx = [Example.char_vocab[c] for c in self.utt]
+        self.word_idx = [Example.word_vocab[w] for w in Example.word_vocab.tokenizer.tokenize(self.utt)]
         l = Example.label_vocab
         self.tag_id = [l.convert_tag_to_idx(tag) for tag in self.tags]
