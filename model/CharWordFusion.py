@@ -121,12 +121,17 @@ class FusionBase(nn.Module):
     @staticmethod
     def pack_and_unpack(input_embedding, input_lengths,rnn):
         l = sorted(input_lengths,reverse=True)
-        forward_seq = [input_lengths.index(i) for i in l]
-        backward_seq = [l.index(i) for i in input_lengths]
-        packed_inputs = rnn_utils.pack_padded_sequence(input_embedding[forward_seq,:,:].clone(),torch.tensor(l).to(torch.device("cpu")),batch_first=True,enforce_sorted=True)
+        # forward_seq = [input_lengths.index(i) for i in l]
+        # backward_seq = [l.index(i) for i in input_lengths]
+        # packed_inputs = rnn_utils.pack_padded_sequence(input_embedding[forward_seq,:,:].clone(),torch.tensor(l).to(torch.device("cpu")),batch_first=True,enforce_sorted=True)
+        # packed_rnn_out, _ = rnn(packed_inputs)
+        # rnn_out, unpacked_len = rnn_utils.pad_packed_sequence(packed_rnn_out,batch_first=True)
+        # return rnn_out[backward_seq,:,:]
+        packed_inputs = rnn_utils.pack_padded_sequence(input_embedding.clone(),torch.tensor(l).to(torch.device("cpu")),batch_first=True,enforce_sorted=True)
         packed_rnn_out, _ = rnn(packed_inputs)
         rnn_out, unpacked_len = rnn_utils.pad_packed_sequence(packed_rnn_out,batch_first=True)
-        return rnn_out[backward_seq,:,:]
+        return rnn_out
+        
     def decode(self, label_vocab, batch):
         batch_size = len(batch)
         labels = batch.labels
