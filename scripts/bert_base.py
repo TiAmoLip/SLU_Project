@@ -13,7 +13,7 @@ from model.slu_baseline_tagging import SLUTagging
 from model.bert_base_model import Bert_base_model
 from transformers import BertTokenizer
 from utils.bert_loader import *
-from scripts.train import train,dev
+from scripts.train import train,dev,test
 # initialization params, output path, logger, random seed and torch.device
 args = init_args(sys.argv[1:])
 set_random_seed(args.seed)
@@ -25,17 +25,20 @@ print("Use GPU with index %s" % (args.device) if args.device >= 0 else "Use CPU 
 start_time = time.time()
 train_path = os.path.join(args.dataroot, 'train.json')
 dev_path = os.path.join(args.dataroot, 'development.json')
+test_path = os.path.join(args.dataroot, 'test_unlabelled.json')
 Example.configuration(args.dataroot, train_path=train_path, word2vec_path=args.word2vec_path if args.load_embedding else None)
 train_dataset = Example.load_dataset(train_path)
 dev_dataset = Example.load_dataset(dev_path)
+test_dataset = Example.load_dataset(test_path)
 label_vocab = Example.label_vocab
 evaluator = Example.evaluator
 tokenizer = BertTokenizer(args.bert_vob)
 train_loader = DataLoader(dataset=bert_load(train_dataset,args,tokenizer), batch_size=args.batch_size, shuffle=True)
 dev_loader = DataLoader(bert_load(dev_dataset, args, tokenizer), batch_size=args.batch_size, shuffle=True)
+test_loader = DataLoader(bert_load(test_dataset, args, tokenizer), batch_size=args.batch_size, shuffle=False)
 
 print("Load dataset and database finished, cost %.4fs ..." % (time.time() - start_time))
-print("Dataset size: train -> %d ; dev -> %d" % (len(train_dataset), len(dev_dataset)))
+print("Dataset size: train -> %d ; dev -> %d ; test -> %d" % (len(train_dataset), len(dev_dataset), len(test_dataset)))
 
 args.vocab_size = Example.word_vocab.vocab_size#1741
 args.pad_idx = Example.word_vocab[PAD]#0
@@ -69,3 +72,12 @@ with tqdm(total = args.max_epoch) as pbar:
     print("Evaluation costs %.2fs, Best result epoch: %d ; Dev loss: %.2f\tDev acc: %.2f\tDev fscore(p/r/f): (%.2f/%.2f/%.2f)" % (time.time() - start_time, \
                                                             best_result['iter'], best_result['dev_loss'], best_result['dev_acc'], \
                                                             best_result['dev_f1']['precision'], best_result['dev_f1']['recall'], best_result['dev_f1']['fscore']))
+out_list = []
+test_utts, test_preds = test(args,model,tokenizer,test_loader,label_vocab)
+for batch in range(len(test_utts)):
+    for i in range(len(test_utts[batch])):
+        print(test_utts[batch][i],test_preds[batch][i])
+        out_dict = {}
+        out_dict.update({"utt_id":1, "asr_1best":test_utts[batch][i], "semantic": [], "pred": [j.split('-') for j in test_preds[batch][i]]})
+        out_list.append([out_dict])
+json.dump(out_list,open("output/test.json","w",encoding='utf-8'), indent=4, ensure_ascii=False)

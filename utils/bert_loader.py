@@ -5,7 +5,7 @@ from torch import nn
 from transformers import BertTokenizer,BertModel
 from copy import deepcopy
 
-def encoder(tokenizer,add_vob_path,text_list,max_len = 100):
+def encoder(tokenizer,text_list,max_len = 100):
     #vob_list = tokenizer.get_vocab()
     #with open(add_vob_path, 'r', encoding='utf-8') as f:
     #    lines = f.readlines()
@@ -37,7 +37,7 @@ def padding(list, length):
 
 def bert_load(ex_list, args, tokenizer):
     utt = [ex.utt for ex in ex_list]
-    input_ids,token_type_ids,attention_mask,length,leng = encoder(tokenizer, args.word2vec_path, utt)
+    input_ids,token_type_ids,attention_mask,length,leng = encoder(tokenizer, utt)
     args.length = length
     label = [padding(ex.tag_id, length) for ex in ex_list]
     label = torch.tensor(label)
