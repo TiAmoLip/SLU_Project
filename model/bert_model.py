@@ -3,10 +3,10 @@ from torch.utils.data import TensorDataset,DataLoader
 from torch import nn
 from transformers import BertTokenizer,BertModel
 
-class Bert_base_model(nn.Module):
+class Bertmodel(nn.Module):
 
     def __init__(self,args):
-        super(Bert_base_model,self).__init__()
+        super(Bertmodel,self).__init__()
         self.bert = BertModel.from_pretrained(args.bert_path)
         if args.frozon:
             for param in self.bert.parameters():
